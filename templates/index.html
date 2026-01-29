@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prompt Enhancer - שיפור פרומפטים בעברית</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-dark: #4f46e5;
+            --secondary: #10b981;
+            --bg: #0f172a;
+            --surface: #1e293b;
+            --surface-light: #334155;
+            --text: #f1f5f9;
+            --text-muted: #94a3b8;
+            --error: #ef4444;
+            --warning: #f59e0b;
+            --success: #22c55e;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1.1rem;
+        }
+        
+        .card {
+            background: var(--surface);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid var(--surface-light);
+        }
+        
+        .card-title {
+            font-size: 1.25rem;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 150px;
+            padding: 1rem;
+            border: 2px solid var(--surface-light);
+            border-radius: 8px;
+            background: var(--bg);
+            color: var(--text);
+            font-size: 1rem;
+            font-family: inherit;
+            resize: vertical;
+            direction: rtl;
+        }
+        
+        textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+        
+        button {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+        
+        .btn-secondary {
+            background: var(--surface-light);
+            color: var(--text);
+        }
+        
+        .btn-secondary:hover {
+            background: #475569;
+        }
+        
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        #result {
+            display: none;
+        }
+        
+        #result.show {
+            display: block;
+        }
+        
+        .score-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .score-high {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--success);
+        }
+        
+        .score-medium {
+            background: rgba(245, 158, 11, 0.2);
+            color: var(--warning);
+        }
+        
+        .score-low {
+            background: rgba(239, 68, 68, 0.2);
+            color: var(--error);
+        }
+        
+        .weakness-item {
+            background: var(--bg);
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+            border-right: 4px solid var(--warning);
+        }
+        
+        .weakness-type {
+            font-weight: 600;
+            color: var(--warning);
+            margin-bottom: 0.5rem;
+        }
+        
+        .weakness-suggestion {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+        
+        .improved-prompt {
+            background: var(--bg);
+            padding: 1.5rem;
+            border-radius: 8px;
+            border-right: 4px solid var(--success);
+            white-space: pre-wrap;
+            font-family: 'Courier New', monospace;
+            direction: rtl;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--surface-light);
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .telegram-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: #0088cc;
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            margin-top: 1rem;
+        }
+        
+        .telegram-btn:hover {
+            background: #006699;
+        }
+        
+        footer {
+            text-align: center;
+            margin-top: 3rem;
+            color: var(--text-muted);
+        }
+        
+        @media (max-width: 600px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            h1 {
+                font-size: 1.75rem;
+            }
+            
+            .btn-group {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚀 Prompt Enhancer</h1>
+            <p class="subtitle">שיפור פרומפטים בעברית עם AI</p>
+        </header>
+        
+        <div class="card">
+            <h2 class="card-title">📝 הזן פרומפט</h2>
+            <textarea id="prompt" placeholder="כתוב כאן את הפרומפט שאתה רוצה לשפר...
+
+לדוגמה:
+כתוב לי סקריפט פייתון שמנתח קבצי לוג"></textarea>
+            
+            <div class="btn-group">
+                <button class="btn-primary" onclick="analyzePrompt()">🔍 נתח</button>
+                <button class="btn-secondary" onclick="improvePrompt()">✨ שפר אוטומטית</button>
+            </div>
+        </div>
+        
+        <div class="loading" id="loading">
+            <div class="spinner"></div>
+            <p>מעבד את הפרומפט...</p>
+        </div>
+        
+        <div id="result">
+            <div class="card" id="analysisCard">
+                <h2 class="card-title">📊 תוצאות ניתוח</h2>
+                <div id="scoreContainer"></div>
+                <div id="weaknesses"></div>
+            </div>
+            
+            <div class="card" id="improvedCard" style="display: none;">
+                <h2 class="card-title">✨ פרומפט משופר</h2>
+                <div class="improved-prompt" id="improvedPrompt"></div>
+                <p style="margin-top: 1rem; color: var(--text-muted);" id="explanation"></p>
+                <button class="btn-secondary" style="margin-top: 1rem;" onclick="copyImproved()">📋 העתק</button>
+            </div>
+        </div>
+        
+        <div class="card" style="text-align: center;">
+            <h2 class="card-title" style="justify-content: center;">🤖 עדיף בטלגרם?</h2>
+            <p style="color: var(--text-muted); margin-bottom: 1rem;">
+                השתמש בבוט שלנו לחוויה טובה יותר עם היסטוריה ודוגמאות קהילתיות
+            </p>
+            <a href="https://t.me/YOUR_BOT_USERNAME" class="telegram-btn" target="_blank">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm4.64 6.8c-.15 1.58-.8 5.42-1.13 7.19-.14.75-.42 1-.68 1.03-.58.05-1.02-.38-1.58-.75-.88-.58-1.38-.94-2.23-1.5-.99-.65-.35-1.01.22-1.59.15-.15 2.71-2.48 2.76-2.69a.2.2 0 00-.05-.18c-.06-.05-.14-.03-.21-.02-.09.02-1.49.95-4.22 2.79-.4.27-.76.41-1.08.4-.36-.01-1.04-.2-1.55-.37-.63-.2-1.12-.31-1.08-.66.02-.18.27-.36.74-.55 2.92-1.27 4.86-2.11 5.83-2.51 2.78-1.16 3.35-1.36 3.73-1.36.08 0 .27.02.39.12.1.08.13.19.14.27-.01.06.01.24 0 .38z"/>
+                </svg>
+                פתח בטלגרם
+            </a>
+        </div>
+        
+        <footer>
+            <p>Prompt Enhancer v1.0 | עברית-First AI</p>
+        </footer>
+    </div>
+    
+    <script>
+        const API_BASE = '';  // Same origin
+        
+        async function analyzePrompt() {
+            const prompt = document.getElementById('prompt').value.trim();
+            if (!prompt) {
+                alert('אנא הזן פרומפט לניתוח');
+                return;
+            }
+            
+            showLoading(true);
+            hideResult();
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/analyze`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                displayAnalysis(data);
+                
+            } catch (error) {
+                alert('שגיאה: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        async function improvePrompt() {
+            const prompt = document.getElementById('prompt').value.trim();
+            if (!prompt) {
+                alert('אנא הזן פרומפט לשיפור');
+                return;
+            }
+            
+            showLoading(true);
+            hideResult();
+            
+            try {
+                const response = await fetch(`${API_BASE}/api/improve`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ prompt })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                displayImprovement(data);
+                
+            } catch (error) {
+                alert('שגיאה: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+        
+        function displayAnalysis(data) {
+            const result = document.getElementById('result');
+            const scoreContainer = document.getElementById('scoreContainer');
+            const weaknessesContainer = document.getElementById('weaknesses');
+            
+            // Score
+            const score = data.critique.overall_score;
+            const scoreClass = score >= 7 ? 'score-high' : score >= 5 ? 'score-medium' : 'score-low';
+            scoreContainer.innerHTML = `
+                <span class="score-badge ${scoreClass}">
+                    ציון: ${score}/10
+                    ${data.critique.is_ready ? '✓ מוכן לשימוש' : ''}
+                </span>
+                <p style="color: var(--text-muted);">קטגוריה: ${data.category_description}</p>
+            `;
+            
+            // Weaknesses
+            const weaknesses = data.critique.weaknesses;
+            if (weaknesses.length > 0) {
+                weaknessesContainer.innerHTML = `
+                    <h3 style="margin: 1rem 0;">נקודות לשיפור:</h3>
+                    ${weaknesses.map(w => `
+                        <div class="weakness-item">
+                            <div class="weakness-type">${getTypeLabel(w.type)}</div>
+                            <div>${w.description}</div>
+                            <div class="weakness-suggestion">💡 ${w.suggestion}</div>
+                        </div>
+                    `).join('')}
+                `;
+            } else {
+                weaknessesContainer.innerHTML = '<p style="color: var(--success);">✓ לא נמצאו בעיות משמעותיות</p>';
+            }
+            
+            document.getElementById('improvedCard').style.display = 'none';
+            result.classList.add('show');
+        }
+        
+        function displayImprovement(data) {
+            displayAnalysis(data);
+            
+            const improvedCard = document.getElementById('improvedCard');
+            const improvedPrompt = document.getElementById('improvedPrompt');
+            const explanation = document.getElementById('explanation');
+            
+            improvedPrompt.textContent = data.improved_prompt;
+            explanation.textContent = data.explanation;
+            
+            improvedCard.style.display = 'block';
+        }
+        
+        function getTypeLabel(type) {
+            const labels = {
+                'ambiguity': '🔀 אמביגואיות',
+                'context': '📋 חוסר הקשר',
+                'assumption': '💭 הנחות מוטעות',
+                'format': '📄 פורמט לא ברור',
+                'specificity': '🎯 חוסר ספציפיות'
+            };
+            return labels[type] || type;
+        }
+        
+        function showLoading(show) {
+            document.getElementById('loading').classList.toggle('show', show);
+        }
+        
+        function hideResult() {
+            document.getElementById('result').classList.remove('show');
+        }
+        
+        function copyImproved() {
+            const text = document.getElementById('improvedPrompt').textContent;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('הפרומפט המשופר הועתק!');
+            });
+        }
+    </script>
+</body>
+</html>
