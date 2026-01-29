@@ -4,6 +4,7 @@ Flask app with Telegram webhook and Web API
 """
 import asyncio
 import logging
+import threading
 from flask import Flask, request, jsonify, render_template
 from telegram import Update
 
@@ -25,6 +26,31 @@ app = Flask(__name__)
 # Global bot application
 bot_app = None
 bot_initialized = False
+
+# ========== Persistent Event Loop ==========
+# Event loop קבוע שרץ ברקע - פותר את בעיית "Event loop is closed"
+_loop = None
+_loop_thread = None
+
+
+def get_event_loop():
+    """קבלת event loop קבוע שרץ ברקע"""
+    global _loop, _loop_thread
+    
+    if _loop is None or _loop.is_closed():
+        _loop = asyncio.new_event_loop()
+        _loop_thread = threading.Thread(target=_loop.run_forever, daemon=True)
+        _loop_thread.start()
+        logger.info("Created new persistent event loop")
+    
+    return _loop
+
+
+def run_async(coro):
+    """הרצת coroutine על ה-event loop הקבוע"""
+    loop = get_event_loop()
+    future = asyncio.run_coroutine_threadsafe(coro, loop)
+    return future.result(timeout=120)  # timeout של 2 דקות
 
 
 async def initialize_bot():
@@ -87,7 +113,8 @@ def telegram_webhook():
             print("=== UPDATE PROCESSED ===", flush=True)
             logger.info("Update processed")
 
-        asyncio.run(process())
+        # שימוש ב-event loop קבוע במקום asyncio.run() שסוגר את ה-loop
+        run_async(process())
 
         print("=== WEBHOOK COMPLETED ===", flush=True)
         logger.info("Webhook completed successfully")
@@ -106,7 +133,7 @@ def set_webhook():
     
     try:
         bot = get_bot()
-        asyncio.run(setup_webhook(bot, config.WEBHOOK_URL))
+        run_async(setup_webhook(bot, config.WEBHOOK_URL))
         return jsonify({"status": "webhook set", "url": config.WEBHOOK_URL})
     except Exception as e:
         logger.error(f"Set webhook error: {e}")
@@ -134,7 +161,7 @@ def api_analyze():
     user_id = data.get("user_id", "api_user")
     
     try:
-        result = asyncio.run(orchestrator.analyze_prompt(prompt, user_id))
+        result = run_async(orchestrator.analyze_prompt(prompt, user_id))
         
         # המרה לפורמט JSON-friendly
         return jsonify({
@@ -183,7 +210,7 @@ def api_improve():
     max_iterations = data.get("max_iterations", config.MAX_ITERATIONS)
     
     try:
-        result = asyncio.run(orchestrator.refine_prompt(
+        result = run_async(orchestrator.refine_prompt(
             prompt=prompt,
             user_id=user_id,
             user_answers=user_answers,
@@ -226,7 +253,7 @@ def api_quick_critique():
         return jsonify({"error": "Missing 'prompt' field"}), 400
     
     try:
-        critique = asyncio.run(orchestrator.quick_critique(data["prompt"]))
+        critique = run_async(orchestrator.quick_critique(data["prompt"]))
         return jsonify({"critique": critique})
     except Exception as e:
         logger.error(f"API quick-critique error: {e}")
@@ -238,7 +265,7 @@ def api_stats():
     """סטטיסטיקות המערכת"""
     try:
         db = MongoDB()
-        stats = asyncio.run(db.get_stats())
+        stats = run_async(db.get_stats())
         return jsonify(stats)
     except Exception as e:
         logger.error(f"API stats error: {e}")
@@ -252,7 +279,7 @@ def api_examples():
         category = request.args.get("category")
         limit = int(request.args.get("limit", 5))
         
-        examples = asyncio.run(orchestrator.get_community_examples(
+        examples = run_async(orchestrator.get_community_examples(
             category=category,
             limit=limit
         ))
@@ -270,7 +297,7 @@ def startup_tasks():
     if not hasattr(app, '_indexes_created'):
         try:
             db = MongoDB()
-            asyncio.run(db.ensure_indexes())
+            run_async(db.ensure_indexes())
             app._indexes_created = True
             logger.info("Database indexes ensured")
         except Exception as e:
@@ -281,7 +308,7 @@ def startup_tasks():
         try:
             bot = get_bot()
             webhook_url = f"{config.WEBHOOK_URL}/webhook"
-            asyncio.run(bot.bot.set_webhook(url=webhook_url))
+            run_async(bot.bot.set_webhook(url=webhook_url))
             app._webhook_set = True
             logger.info(f"Webhook registered: {webhook_url}")
             print(f"=== WEBHOOK REGISTERED: {webhook_url} ===", flush=True)
