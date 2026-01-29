@@ -41,11 +41,17 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /help - עזרה
 
 **התחל עכשיו - פשוט שלח פרומפט!** ✨"""
-    
-    await update.message.reply_text(
-        welcome_message,
-        parse_mode=ParseMode.MARKDOWN
-    )
+
+    try:
+        await update.message.reply_text(
+            welcome_message,
+            parse_mode=ParseMode.MARKDOWN
+        )
+        logger.info("start_command reply sent successfully")
+    except Exception as e:
+        logger.error(f"start_command failed to send reply: {e}", exc_info=True)
+        # נסה בלי markdown אם יש בעיה
+        await update.message.reply_text(welcome_message)
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
