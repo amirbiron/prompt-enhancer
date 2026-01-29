@@ -200,13 +200,11 @@ async def analyze_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE, pro
     
     # הודעת המתנה
     waiting_msg = await update.message.reply_text("🔍 מנתח את הפרומפט...")
+    waiting_msg_deleted = False
     
     try:
         # ניתוח
         analysis = await orchestrator.analyze_prompt(prompt, user_id)
-        
-        # מחיקת הודעת המתנה
-        await waiting_msg.delete()
         
         # בניית תגובה
         response = f"**{analysis['category_description']}**\n\n"
@@ -232,6 +230,13 @@ async def analyze_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE, pro
         )
         await db.save_session(session)
         
+        # מחיקת הודעת המתנה רק אחרי שהכל הצליח
+        try:
+            await waiting_msg.delete()
+            waiting_msg_deleted = True
+        except Exception:
+            pass  # אם המחיקה נכשלה, נמשיך בכל זאת
+        
         await update.message.reply_text(
             response,
             parse_mode=ParseMode.MARKDOWN,
@@ -240,9 +245,17 @@ async def analyze_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE, pro
         
     except Exception as e:
         logger.error(f"Analysis failed: {e}")
-        await waiting_msg.edit_text(
-            "❌ שגיאה בניתוח. נסה שוב או שלח פרומפט אחר."
-        )
+        error_text = "❌ שגיאה בניתוח. נסה שוב או שלח פרומפט אחר."
+        if waiting_msg_deleted:
+            # ההודעה נמחקה, שולחים הודעה חדשה
+            await update.message.reply_text(error_text)
+        else:
+            # ההודעה עדיין קיימת, מעדכנים אותה
+            try:
+                await waiting_msg.edit_text(error_text)
+            except Exception:
+                # אם גם העריכה נכשלה, שולחים הודעה חדשה
+                await update.message.reply_text(error_text)
 
 
 async def improve_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE, prompt: str):
@@ -253,6 +266,7 @@ async def improve_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE, pro
     waiting_msg = await update.message.reply_text(
         "⏳ משפר את הפרומפט...\nזה עשוי לקחת כמה שניות."
     )
+    waiting_msg_deleted = False
     
     try:
         # שיפור
@@ -261,9 +275,6 @@ async def improve_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE, pro
             user_id=user_id,
             use_iterations=True
         )
-        
-        # מחיקת הודעת המתנה
-        await waiting_msg.delete()
         
         # בניית תגובה
         score_emoji = "🟢" if result.critique.overall_score >= 7 else "🟡"
@@ -288,6 +299,13 @@ async def improve_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE, pro
             [InlineKeyboardButton("📋 העתק", callback_data=f"copy:{user_id}")]
         ]
         
+        # מחיקת הודעת המתנה רק אחרי שהכל הצליח
+        try:
+            await waiting_msg.delete()
+            waiting_msg_deleted = True
+        except Exception:
+            pass  # אם המחיקה נכשלה, נמשיך בכל זאת
+        
         await update.message.reply_text(
             response,
             parse_mode=ParseMode.MARKDOWN,
@@ -296,9 +314,17 @@ async def improve_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE, pro
         
     except Exception as e:
         logger.error(f"Improvement failed: {e}")
-        await waiting_msg.edit_text(
-            "❌ שגיאה בשיפור. נסה שוב או שלח פרומפט אחר."
-        )
+        error_text = "❌ שגיאה בשיפור. נסה שוב או שלח פרומפט אחר."
+        if waiting_msg_deleted:
+            # ההודעה נמחקה, שולחים הודעה חדשה
+            await update.message.reply_text(error_text)
+        else:
+            # ההודעה עדיין קיימת, מעדכנים אותה
+            try:
+                await waiting_msg.edit_text(error_text)
+            except Exception:
+                # אם גם העריכה נכשלה, שולחים הודעה חדשה
+                await update.message.reply_text(error_text)
 
 
 async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
