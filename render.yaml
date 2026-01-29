@@ -1,0 +1,43 @@
+# Render Blueprint
+# https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: prompt-enhancer
+    runtime: python
+    region: frankfurt  # קרוב לישראל
+    plan: free  # או starter לביצועים טובים יותר
+    
+    # Build
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120
+    
+    # Health Check
+    healthCheckPath: /health
+    
+    # Environment Variables
+    envVars:
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false  # להזין ידנית ב-Render Dashboard
+      - key: MONGODB_URI
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: WEBHOOK_URL
+        sync: false  # יהיה https://prompt-enhancer.onrender.com
+      - key: DEBUG
+        value: "false"
+      - key: MAX_ITERATIONS
+        value: "3"
+      - key: PRIMARY_MODEL
+        value: "gemini"
+      - key: PYTHON_VERSION
+        value: "3.11.0"
+
+# MongoDB Atlas - להגדיר בנפרד
+# הוראות:
+# 1. צור חשבון ב-MongoDB Atlas (https://www.mongodb.com/atlas)
+# 2. צור Cluster (M0 Free Tier מספיק להתחלה)
+# 3. צור Database User
+# 4. הוסף 0.0.0.0/0 ל-Network Access (או IP ספציפי של Render)
+# 5. העתק את Connection String ל-MONGODB_URI
