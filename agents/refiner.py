@@ -26,7 +26,7 @@ class PromptRefiner:
     def __init__(self):
         genai.configure(api_key=config.GEMINI_API_KEY)
         # מודל איכותי יותר לשיפור
-        self.model = genai.GenerativeModel('gemini-1.5-pro')
+        self.model = genai.GenerativeModel('gemini-2.0-flash')
     
     async def refine(
         self,
