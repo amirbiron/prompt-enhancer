@@ -8,7 +8,7 @@ from typing import Optional, List
 import google.generativeai as genai
 
 from config import config
-from core.models import PromptCategory, CritiqueResult, Weakness, MissingParameter
+from core.models import PromptCategory, CritiqueResult, Weakness, MissingParameter, ProTip
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +36,7 @@ class PromptRefiner:
         user_answers: Optional[dict] = None
     ) -> str:
         """
-        משפר פרומפט על בסיס הביקורת.
+        משפר פרומפט על בסיס הביקורת והטיפים המקצועיים.
         
         Args:
             original_prompt: הפרומפט המקורי
@@ -50,9 +50,10 @@ class PromptRefiner:
         # בניית הקשר מהביקורת
         weaknesses_text = self._format_weaknesses(critique.weaknesses)
         missing_params_text = self._format_missing_params(critique.missing_params)
+        pro_tips_text = self._format_pro_tips(critique.pro_tips)
         user_answers_text = self._format_user_answers(user_answers) if user_answers else ""
         
-        refinement_prompt = f"""[מצב שיפור פרומפט - עברית]
+        refinement_prompt = f"""[מצב שיפור פרומפט מקצועי - עברית]
 
 פרומפט מקורי:
 "{original_prompt}"
@@ -60,32 +61,35 @@ class PromptRefiner:
 קטגוריה: {category.value}
 ציון נוכחי: {critique.overall_score}/10
 
-נקודות חולשה שזוהו:
+## נקודות חולשה לתיקון:
 {weaknesses_text}
 
-פרמטרים חסרים:
+## פרמטרים חסרים:
 {missing_params_text}
+
+## טיפים מקצועיים ליישום (חשוב מאוד!):
+{pro_tips_text}
 
 {user_answers_text}
 
-צור פרומפט משופר שעונה על הדרישות הבאות:
+## משימה: צור פרומפט משופר ומקצועי
 
-1. **מטפל בכל נקודות החולשה** - כל בעיה שזוהתה צריכה להיות מטופלת
-2. **משלים פרמטרים חסרים** - הוסף את המידע החסר בצורה טבעית
-3. **שומר על הכוונה המקורית** - אל תשנה את המטרה של המשתמש
-4. **כולל דוגמאות קונקרטיות** - אם רלוונטי לקטגוריה
-5. **מובנה ומאורגן** - עם מבנה ברור (רקע, משימה, פורמט פלט)
-6. **בעברית טבעית** - שפה ברורה וזורמת
+הפרומפט המשופר חייב:
 
-פורמט מומלץ לפרומפט משופר:
-```
-[רקע/הקשר - אם רלוונטי]
-[המשימה העיקרית]
-[פרטים ספציפיים: קלט, פלט, מגבלות]
-[דוגמאות - אם רלוונטי]
-```
+1. **לתקן את כל נקודות החולשה** - כל בעיה שזוהתה צריכה להיות מטופלת
+2. **ליישם את הטיפים המקצועיים** - זה החלק הכי חשוב! תשתמש בטכניקות שהומלצו
+3. **לשמור על הכוונה המקורית** - אל תשנה את המטרה של המשתמש
+4. **להיות מקצועי ואפקטיבי** - פרומפט שייתן תוצאות טובות יותר
 
-החזר רק את הפרומפט המשופר, ללא הסברים או הערות נוספות."""
+טכניקות שחובה לשקול:
+- 🎭 Role Playing: הגדר למודל תפקיד מומחה אם רלוונטי
+- 🔗 Chain of Thought: בקש שלבי חשיבה אם המשימה מורכבת
+- 📝 Few-Shot: הוסף דוגמה לפלט הרצוי אם לא ברור
+- 🎯 Constraints: הוסף מגבלות שמחדדות את המשימה
+- 📐 Structure: ארגן את הפרומפט במבנה ברור
+
+החזר רק את הפרומפט המשופר, ללא הסברים או הערות נוספות.
+הפרומפט צריך להיות מוכן לשימוש ישיר."""
 
         try:
             response = await self.model.generate_content_async(
@@ -177,6 +181,29 @@ class PromptRefiner:
         for p in params:
             importance = "חובה" if p.importance == "required" else "מומלץ"
             lines.append(f"- {p.name} ({importance}): {p.question}")
+        return "\n".join(lines)
+    
+    def _format_pro_tips(self, tips: List[ProTip]) -> str:
+        """מעצב טיפים מקצועיים לטקסט"""
+        if not tips:
+            return "לא זוהו טיפים ספציפיים"
+        
+        technique_names = {
+            "role_playing": "הגדרת תפקיד",
+            "chain_of_thought": "חשיבה שלב-אחר-שלב",
+            "few_shot": "דוגמאות",
+            "constraints": "מגבלות",
+            "structure": "מבנה",
+            "creativity": "יצירתיות"
+        }
+        
+        lines = []
+        for i, tip in enumerate(tips, 1):
+            technique = technique_names.get(tip.technique, tip.technique)
+            lines.append(f"{i}. [{technique}] {tip.title}")
+            lines.append(f"   הצעה: {tip.suggestion}")
+            if tip.example:
+                lines.append(f"   דוגמה: \"{tip.example}\"")
         return "\n".join(lines)
     
     def _format_user_answers(self, answers: dict) -> str:
