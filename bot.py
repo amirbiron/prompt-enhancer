@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """פקודת /start"""
+    logger.info(f"start_command called by user {update.effective_user.id}")
     welcome_message = """🚀 **ברוכים הבאים ל-Prompt Enhancer!**
 
 אני עוזר לך לשפר פרומפטים ל-AI בעברית.
@@ -40,11 +41,17 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
 /help - עזרה
 
 **התחל עכשיו - פשוט שלח פרומפט!** ✨"""
-    
-    await update.message.reply_text(
-        welcome_message,
-        parse_mode=ParseMode.MARKDOWN
-    )
+
+    try:
+        await update.message.reply_text(
+            welcome_message,
+            parse_mode=ParseMode.MARKDOWN
+        )
+        logger.info("start_command reply sent successfully")
+    except Exception as e:
+        logger.error(f"start_command failed to send reply: {e}", exc_info=True)
+        # נסה בלי markdown אם יש בעיה
+        await update.message.reply_text(welcome_message)
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -355,10 +362,13 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def create_bot() -> Application:
     """יצירת הבוט"""
+    logger.info("Creating bot application...")
+    print("Creating bot application...")  # Debug print
     application = Application.builder().token(config.TELEGRAM_BOT_TOKEN).build()
-    
+
     # פקודות
     application.add_handler(CommandHandler("start", start_command))
+    logger.info("Added start command handler")
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("analyze", analyze_command))
     application.add_handler(CommandHandler("improve", improve_command))
