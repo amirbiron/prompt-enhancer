@@ -47,6 +47,38 @@ CATEGORY_PARAMETERS: Dict[PromptCategory, List[Dict[str, Any]]] = {
             "examples": ["raise exception", "return None", "log and continue"]
         }
     ],
+    PromptCategory.IMAGE_GENERATION: [
+        {
+            "name": "art_style",
+            "question": "באיזה סגנון אומנותי? (ריאליסטי, אנימה, ציור שמן, קריקטורה)",
+            "importance": "required",
+            "examples": ["ריאליסטי", "אנימה", "ציור שמן", "קריקטורה", "3D רנדר"]
+        },
+        {
+            "name": "lighting",
+            "question": "איזו תאורה? (טבעית, סינמטית, ניאון, שעת זהב)",
+            "importance": "recommended",
+            "examples": ["תאורה טבעית", "תאורה סינמטית", "ניאון", "שעת זהב", "לילה"]
+        },
+        {
+            "name": "composition",
+            "question": "איזו קומפוזיציה? (תקריב, רחב, מבט מלמעלה)",
+            "importance": "recommended",
+            "examples": ["תקריב", "צילום רחב", "מבט מלמעלה", "דיוקן"]
+        },
+        {
+            "name": "aspect_ratio",
+            "question": "מה יחס התמונה? (16:9, 1:1 ריבוע, 9:16 לסטורי)",
+            "importance": "recommended",
+            "examples": ["16:9", "1:1", "9:16", "4:3"]
+        },
+        {
+            "name": "mood",
+            "question": "מה האווירה הרצויה? (דרמטי, שמח, מסתורי)",
+            "importance": "recommended",
+            "examples": ["דרמטי", "שמח", "מסתורי", "רומנטי", "אפוקליפטי"]
+        }
+    ],
     PromptCategory.CREATIVE: [
         {
             "name": "tone",
