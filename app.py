@@ -24,6 +24,18 @@ app = Flask(__name__)
 
 # Global bot application
 bot_app = None
+bot_initialized = False
+
+
+async def initialize_bot():
+    """Initialize bot application for webhook mode"""
+    global bot_app, bot_initialized
+    if bot_app is None:
+        bot_app = create_bot()
+    if not bot_initialized:
+        await bot_app.initialize()
+        bot_initialized = True
+    return bot_app
 
 
 def get_bot():
@@ -56,12 +68,13 @@ def health():
 def telegram_webhook():
     """Webhook endpoint לטלגרם"""
     try:
-        bot = get_bot()
-        update = Update.de_json(request.get_json(), bot.bot)
-        
-        # הרצה אסינכרונית
-        asyncio.run(bot.process_update(update))
-        
+        async def process():
+            bot = await initialize_bot()
+            update = Update.de_json(request.get_json(), bot.bot)
+            await bot.process_update(update)
+
+        asyncio.run(process())
+
         return jsonify({"status": "ok"})
     except Exception as e:
         logger.error(f"Webhook error: {e}")
