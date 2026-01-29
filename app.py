@@ -264,8 +264,9 @@ def api_examples():
 
 # ========== Startup ==========
 @app.before_request
-def ensure_indexes():
-    """יצירת אינדקסים בהפעלה ראשונה"""
+def startup_tasks():
+    """משימות הפעלה ראשונה - אינדקסים ו-webhook"""
+    # יצירת אינדקסים
     if not hasattr(app, '_indexes_created'):
         try:
             db = MongoDB()
@@ -274,6 +275,19 @@ def ensure_indexes():
             logger.info("Database indexes ensured")
         except Exception as e:
             logger.error(f"Failed to create indexes: {e}")
+
+    # רישום webhook
+    if not hasattr(app, '_webhook_set') and config.WEBHOOK_URL:
+        try:
+            bot = get_bot()
+            webhook_url = f"{config.WEBHOOK_URL}/webhook"
+            asyncio.run(bot.bot.set_webhook(url=webhook_url))
+            app._webhook_set = True
+            logger.info(f"Webhook registered: {webhook_url}")
+            print(f"=== WEBHOOK REGISTERED: {webhook_url} ===", flush=True)
+        except Exception as e:
+            logger.error(f"Failed to set webhook: {e}")
+            print(f"=== WEBHOOK REGISTRATION FAILED: {e} ===", flush=True)
 
 
 # ========== Main ==========
