@@ -1,0 +1,270 @@
+"""
+Prompt Enhancer - Main Application
+Flask app with Telegram webhook and Web API
+"""
+import asyncio
+import logging
+from flask import Flask, request, jsonify, render_template
+from telegram import Update
+
+from config import config
+from bot import create_bot, setup_webhook
+from core.orchestrator import orchestrator
+from database.mongodb import MongoDB
+
+# ========== Logging Setup ==========
+logging.basicConfig(
+    level=logging.DEBUG if config.DEBUG else logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+# ========== Flask App ==========
+app = Flask(__name__)
+
+# Global bot application
+bot_app = None
+
+
+def get_bot():
+    """Lazy initialization of bot"""
+    global bot_app
+    if bot_app is None:
+        bot_app = create_bot()
+    return bot_app
+
+
+# ========== Health Check ==========
+@app.route("/")
+def index():
+    """דף בית / בדיקת תקינות"""
+    return render_template("index.html")
+
+
+@app.route("/health")
+def health():
+    """Health check לפנקי מערכות ניטור ו-Render"""
+    return jsonify({
+        "status": "healthy",
+        "service": "prompt-enhancer",
+        "version": "1.0.0"
+    })
+
+
+# ========== Telegram Webhook ==========
+@app.route("/webhook", methods=["POST"])
+def telegram_webhook():
+    """Webhook endpoint לטלגרם"""
+    try:
+        bot = get_bot()
+        update = Update.de_json(request.get_json(), bot.bot)
+        
+        # הרצה אסינכרונית
+        asyncio.run(bot.process_update(update))
+        
+        return jsonify({"status": "ok"})
+    except Exception as e:
+        logger.error(f"Webhook error: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@app.route("/set-webhook", methods=["POST"])
+def set_webhook():
+    """הגדרת webhook (להרצה חד-פעמית)"""
+    if not config.WEBHOOK_URL:
+        return jsonify({"error": "WEBHOOK_URL not configured"}), 400
+    
+    try:
+        bot = get_bot()
+        asyncio.run(setup_webhook(bot, config.WEBHOOK_URL))
+        return jsonify({"status": "webhook set", "url": config.WEBHOOK_URL})
+    except Exception as e:
+        logger.error(f"Set webhook error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# ========== REST API ==========
+@app.route("/api/analyze", methods=["POST"])
+def api_analyze():
+    """
+    API לניתוח פרומפט
+    
+    Request:
+        {"prompt": "הפרומפט לניתוח", "user_id": "optional"}
+    
+    Response:
+        {"category": "...", "critique": {...}, "questions": [...]}
+    """
+    data = request.get_json()
+    
+    if not data or "prompt" not in data:
+        return jsonify({"error": "Missing 'prompt' field"}), 400
+    
+    prompt = data["prompt"]
+    user_id = data.get("user_id", "api_user")
+    
+    try:
+        result = asyncio.run(orchestrator.analyze_prompt(prompt, user_id))
+        
+        # המרה לפורמט JSON-friendly
+        return jsonify({
+            "original_prompt": result["original_prompt"],
+            "category": result["category"].value,
+            "category_description": result["category_description"],
+            "confidence": result["confidence"],
+            "critique": {
+                "weaknesses": [w.model_dump() for w in result["critique"].weaknesses],
+                "missing_params": [p.model_dump() for p in result["critique"].missing_params],
+                "overall_score": result["critique"].overall_score,
+                "is_ready": result["critique"].is_ready
+            },
+            "questions": result["questions"],
+            "formatted_critique": result["formatted_critique"]
+        })
+    except Exception as e:
+        logger.error(f"API analyze error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/improve", methods=["POST"])
+def api_improve():
+    """
+    API לשיפור פרומפט
+    
+    Request:
+        {
+            "prompt": "הפרומפט לשיפור",
+            "user_id": "optional",
+            "user_answers": {"param": "value"} (optional),
+            "max_iterations": 3 (optional)
+        }
+    
+    Response:
+        {"original": "...", "improved": "...", "explanation": "...", ...}
+    """
+    data = request.get_json()
+    
+    if not data or "prompt" not in data:
+        return jsonify({"error": "Missing 'prompt' field"}), 400
+    
+    prompt = data["prompt"]
+    user_id = data.get("user_id", "api_user")
+    user_answers = data.get("user_answers")
+    max_iterations = data.get("max_iterations", config.MAX_ITERATIONS)
+    
+    try:
+        result = asyncio.run(orchestrator.refine_prompt(
+            prompt=prompt,
+            user_id=user_id,
+            user_answers=user_answers,
+            max_iterations=max_iterations
+        ))
+        
+        return jsonify({
+            "original_prompt": result.original_prompt,
+            "improved_prompt": result.improved_prompt,
+            "category": result.category.value,
+            "score": result.critique.overall_score,
+            "iterations_used": result.iterations_used,
+            "improvement_delta": result.improvement_delta,
+            "explanation": result.explanation,
+            "critique": {
+                "weaknesses": [w.model_dump() for w in result.critique.weaknesses],
+                "overall_score": result.critique.overall_score,
+                "is_ready": result.critique.is_ready
+            }
+        })
+    except Exception as e:
+        logger.error(f"API improve error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/quick-critique", methods=["POST"])
+def api_quick_critique():
+    """
+    API לביקורת מהירה (טקסט בלבד)
+    
+    Request:
+        {"prompt": "הפרומפט"}
+    
+    Response:
+        {"critique": "טקסט מעוצב בעברית"}
+    """
+    data = request.get_json()
+    
+    if not data or "prompt" not in data:
+        return jsonify({"error": "Missing 'prompt' field"}), 400
+    
+    try:
+        critique = asyncio.run(orchestrator.quick_critique(data["prompt"]))
+        return jsonify({"critique": critique})
+    except Exception as e:
+        logger.error(f"API quick-critique error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/stats", methods=["GET"])
+def api_stats():
+    """סטטיסטיקות המערכת"""
+    try:
+        db = MongoDB()
+        stats = asyncio.run(db.get_stats())
+        return jsonify(stats)
+    except Exception as e:
+        logger.error(f"API stats error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/examples", methods=["GET"])
+def api_examples():
+    """דוגמאות קהילתיות"""
+    try:
+        category = request.args.get("category")
+        limit = int(request.args.get("limit", 5))
+        
+        examples = asyncio.run(orchestrator.get_community_examples(
+            category=category,
+            limit=limit
+        ))
+        return jsonify({"examples": examples})
+    except Exception as e:
+        logger.error(f"API examples error: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
+# ========== Startup ==========
+@app.before_request
+def ensure_indexes():
+    """יצירת אינדקסים בהפעלה ראשונה"""
+    if not hasattr(app, '_indexes_created'):
+        try:
+            db = MongoDB()
+            asyncio.run(db.ensure_indexes())
+            app._indexes_created = True
+            logger.info("Database indexes ensured")
+        except Exception as e:
+            logger.error(f"Failed to create indexes: {e}")
+
+
+# ========== Main ==========
+if __name__ == "__main__":
+    # בדיקה אם להריץ במצב webhook או polling
+    if config.WEBHOOK_URL:
+        # Production mode with webhook
+        logger.info(f"Starting in webhook mode on port {config.PORT}")
+        app.run(host="0.0.0.0", port=config.PORT, debug=config.DEBUG)
+    else:
+        # Development mode with polling
+        logger.info("Starting in polling mode (development)")
+        from bot import run_polling
+        
+        # הרצת Flask ב-thread נפרד
+        import threading
+        flask_thread = threading.Thread(
+            target=lambda: app.run(host="0.0.0.0", port=config.PORT, debug=False)
+        )
+        flask_thread.daemon = True
+        flask_thread.start()
+        
+        # הרצת הבוט במצב polling
+        run_polling()
