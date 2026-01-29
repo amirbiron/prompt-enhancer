@@ -362,10 +362,13 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 def create_bot() -> Application:
     """יצירת הבוט"""
+    logger.info("Creating bot application...")
+    print("Creating bot application...")  # Debug print
     application = Application.builder().token(config.TELEGRAM_BOT_TOKEN).build()
-    
+
     # פקודות
     application.add_handler(CommandHandler("start", start_command))
+    logger.info("Added start command handler")
     application.add_handler(CommandHandler("help", help_command))
     application.add_handler(CommandHandler("analyze", analyze_command))
     application.add_handler(CommandHandler("improve", improve_command))
