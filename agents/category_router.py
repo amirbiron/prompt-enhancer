@@ -29,6 +29,13 @@ class CategoryRouter:
                 "קוד", "סקריפט", "פונקציה", "תכנות", "python", "javascript",
                 "api", "באג", "debug", "function", "class", "מחלקה"
             ],
+            PromptCategory.IMAGE_GENERATION: [
+                "midjourney", "dall-e", "dalle", "stable diffusion", "תמונה",
+                "אילוסטרציה", "ציור", "רנדר", "render", "3d", "פוטוריאליסטי",
+                "אנימה", "קריקטורה", "דיוקן", "נוף", "לוגו", "איור",
+                "ויזואלי", "גרפי", "עיצוב תמונה", "image", "photo", "art style",
+                "aspect ratio", "cinematic", "realistic", "hyper realistic"
+            ],
             PromptCategory.CREATIVE: [
                 "כתוב", "סיפור", "שיר", "פוסט", "קופי", "שיווק", "יצירתי",
                 "תוכן", "בלוג", "מאמר", "פרסום", "סלוגן"
@@ -76,15 +83,18 @@ class CategoryRouter:
 
 בחר את הקטגוריה המתאימה ביותר:
 - code: כתיבת קוד, סקריפטים, תכנות, debugging
-- creative: כתיבה יצירתית, שיווק, תוכן, סיפורים
+- image_generation: פרומפטים ליצירת תמונות (Midjourney, DALL-E, Stable Diffusion וכו')
+- creative: כתיבה יצירתית טקסטואלית, שיווק, תוכן, סיפורים (לא תמונות!)
 - analysis: ניתוח נתונים, מחקר, השוואות, דוחות
 - business: החלטות עסקיות, אסטרטגיה, מכירות
 - education: הסברים, לימוד, הדרכות, תרגילים
 - general: כל השאר
 
+שים לב: אם הפרומפט מיועד ליצירת תמונה (מזכיר Midjourney, DALL-E, תמונה, אילוסטרציה, ציור וכו') - זה image_generation!
+
 החזר JSON:
 {{
-    "category": "code|creative|analysis|business|education|general",
+    "category": "code|image_generation|creative|analysis|business|education|general",
     "confidence": 0.0-1.0,
     "reasoning": "הסבר קצר"
 }}"""
@@ -128,6 +138,7 @@ class CategoryRouter:
         """מחזיר תיאור הקטגוריה בעברית"""
         descriptions = {
             PromptCategory.CODE: "💻 קוד ותכנות",
+            PromptCategory.IMAGE_GENERATION: "🎨 יצירת תמונות",
             PromptCategory.CREATIVE: "✍️ כתיבה יצירתית",
             PromptCategory.ANALYSIS: "📊 ניתוח ומחקר",
             PromptCategory.BUSINESS: "💼 עסקים ואסטרטגיה",

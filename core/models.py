@@ -11,6 +11,7 @@ class PromptCategory(str, Enum):
     """קטגוריות פרומפטים"""
     CODE = "code"
     CREATIVE = "creative"
+    IMAGE_GENERATION = "image_generation"  # פרומפטים ליצירת תמונות (Midjourney, DALL-E וכו')
     ANALYSIS = "analysis"
     BUSINESS = "business"
     EDUCATION = "education"

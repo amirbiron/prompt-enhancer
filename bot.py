@@ -210,15 +210,14 @@ async def analyze_prompt(update: Update, context: ContextTypes.DEFAULT_TYPE, pro
         response = f"**{analysis['category_description']}**\n\n"
         response += analysis['formatted_critique']
         
-        # כפתורים
+        # כפתורים - הסרת כפתור "שאל שאלות" כי הוא לא מוסיף ערך
+        # השאלות כבר מופיעות בתוך הביקורת, והמשתמש יכול פשוט לשפר את הפרומפט ולשלוח שוב
         keyboard = [
-            [InlineKeyboardButton("✨ שפר אוטומטית", callback_data=f"improve:{user_id}")],
-            [InlineKeyboardButton("📝 שאל שאלות", callback_data=f"questions:{user_id}")]
+            [InlineKeyboardButton("✨ שפר אוטומטית", callback_data=f"improve:{user_id}")]
         ]
         
-        if analysis['questions']:
-            questions_text = "\n".join(analysis['questions'])
-            response += f"\n\n**❓ שאלות מומלצות:**\n{questions_text}"
+        # לא מוסיפים שאלות מומלצות כפולות - הן כבר מופיעות בתוך formatted_critique
+        # כחלק מ-"שאלות להשלמה"
         
         # שמירת הפרומפט בסשן לשימוש עתידי
         db = MongoDB()
@@ -371,17 +370,12 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     
     elif action == "questions":
-        user_id = data[1]
-        db = MongoDB()
-        session = await db.get_session(user_id)
-        
-        if session and session.context.get("analysis"):
-            questions = session.context["analysis"].get("questions", [])
-            if questions:
-                await query.message.reply_text(
-                    "📝 ענה על השאלות הבאות ושלח את התשובות:\n\n" + 
-                    "\n".join(questions)
-                )
+        # כפתור זה הוסר - השאלות כבר מופיעות בביקורת
+        # אם מישהו עדיין לחץ עליו (backwards compatibility), נפנה אותו להסתכל בביקורת
+        await query.message.reply_text(
+            "📝 השאלות להשלמה מופיעות כבר בהודעת הניתוח למעלה.\n"
+            "שפר את הפרומפט שלך ושלח אותו שוב לניתוח, או לחץ על 'שפר אוטומטית'."
+        )
 
 
 # ========== Bot Setup ==========
