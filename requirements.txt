@@ -1,0 +1,26 @@
+# Prompt Enhancer - Requirements
+# Python 3.11+
+
+# Web Framework
+flask>=3.0.0
+gunicorn>=21.0.0
+
+# Telegram Bot
+python-telegram-bot>=20.7
+
+# AI Models
+google-generativeai>=0.3.0
+# anthropic>=0.8.0  # אופציונלי - להוסיף בהמשך
+
+# Database
+motor>=3.3.0
+pymongo>=4.6.0
+
+# Data Validation
+pydantic>=2.5.0
+
+# Async Support
+aiohttp>=3.9.0
+
+# Utilities
+python-dotenv>=1.0.0
