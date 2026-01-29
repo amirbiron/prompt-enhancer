@@ -33,10 +33,20 @@ class MissingParameter(BaseModel):
     importance: str = Field(default="recommended", description="required או recommended")
 
 
+class ProTip(BaseModel):
+    """טיפ מקצועי לשדרוג הפרומפט"""
+    technique: str = Field(..., description="שם הטכניקה: role_playing, chain_of_thought, few_shot, constraints, structure, creativity")
+    title: str = Field(..., description="כותרת קצרה בעברית")
+    suggestion: str = Field(..., description="ההצעה המלאה בעברית")
+    example: Optional[str] = Field(default=None, description="דוגמה קונקרטית איך ליישם")
+    impact: str = Field(default="medium", description="השפעה צפויה: low, medium, high")
+
+
 class CritiqueResult(BaseModel):
     """תוצאת ביקורת"""
     weaknesses: List[Weakness] = Field(default_factory=list)
     missing_params: List[MissingParameter] = Field(default_factory=list)
+    pro_tips: List[ProTip] = Field(default_factory=list, description="טיפים מקצועיים לשדרוג")
     overall_score: int = Field(default=5, ge=1, le=10, description="ציון כללי 1-10")
     is_ready: bool = Field(default=False, description="האם הפרומפט מוכן לשימוש כמו שהוא")
 
