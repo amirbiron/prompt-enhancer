@@ -67,17 +67,26 @@ def health():
 @app.route("/webhook", methods=["POST"])
 def telegram_webhook():
     """Webhook endpoint לטלגרם"""
+    logger.info("Webhook received")
     try:
+        data = request.get_json()
+        logger.info(f"Webhook data: {data}")
+
         async def process():
+            logger.info("Starting async process")
             bot = await initialize_bot()
-            update = Update.de_json(request.get_json(), bot.bot)
+            logger.info("Bot initialized")
+            update = Update.de_json(data, bot.bot)
+            logger.info(f"Update parsed: {update}")
             await bot.process_update(update)
+            logger.info("Update processed")
 
         asyncio.run(process())
 
+        logger.info("Webhook completed successfully")
         return jsonify({"status": "ok"})
     except Exception as e:
-        logger.error(f"Webhook error: {e}")
+        logger.error(f"Webhook error: {e}", exc_info=True)
         return jsonify({"status": "error", "message": str(e)}), 500
 
 

@@ -23,6 +23,7 @@ logger = logging.getLogger(__name__)
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """פקודת /start"""
+    logger.info(f"start_command called by user {update.effective_user.id}")
     welcome_message = """🚀 **ברוכים הבאים ל-Prompt Enhancer!**
 
 אני עוזר לך לשפר פרומפטים ל-AI בעברית.
